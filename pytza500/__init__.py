@@ -102,6 +102,7 @@ class TZA500():
         self._bandwith: str = BANDWITH.KHZ_10.value
         self._autogain_gain: int = None
         self._gain: str = GAIN.X1.value
+        self._max_gain: int = len(self._gain_steps) - 1
 
         self._tza_comm_max_retries: int = 800
 
@@ -240,6 +241,10 @@ class TZA500():
 
         self._tza_serial = regex_serial if regex_serial != info else "" # get TZA500 serial number
         self._tza_date_of_manufacturing = regex_date_of_manufacturing if regex_date_of_manufacturing != info else "" # get TZA500 date of Manufacturing
+
+        if not self.tza_set_auto_zero_reset():
+            self.disconnect()
+            return False
     
         # set default values
         if not self.tza_set_gain(self._gain):
@@ -404,10 +409,12 @@ class TZA500():
         recv = self._tza_recv()
         if recv.count("Gain: ") > 0:
             self._initial_auto_zero = INITIAL_AUTO_ZERO.AUTO_ZERO.value
+            self._max_gain = int(recv[-1])
             sleep(0.2)
             return True
         elif recv.count("A OK") > 0:
             self._initial_auto_zero = INITIAL_AUTO_ZERO.AUTO_ZERO.value
+            self._max_gain = len(self._gain_steps) - 1
             sleep(0.5)
             return True
         return False
@@ -418,6 +425,7 @@ class TZA500():
         recv = self._tza_recv()
         if recv == "R OK":
             self._initial_auto_zero = INITIAL_AUTO_ZERO.AUTO_ZERO.value
+            self._max_gain = len(self._gain_steps) - 1
             sleep(0.05)
             return True
         return False
@@ -468,9 +476,9 @@ class TZA500():
             self._autogain_gain -= 1
             self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # set new gain
             return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 1) # return new measurement or re-adjust gain
-        elif level < 8.0 and self._autogain_gain < 5:
+        elif level < 8.0 and self._autogain_gain < self._max_gain:
             if last_operation == 1: # prevent jumping between to gain leves
-                recursion = 6
+                recursion = len(self._gain_steps)
             self._autogain_gain += 1
             self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # set new gain
             return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 2) # return new measurement or re-adjust gain
@@ -532,3 +540,4 @@ class TZA500():
         if self._device is not None:
             self._device.close()
             self._device = None
+        self.__init__()
