@@ -23,7 +23,6 @@
 
 import re
 import sys
-import math
 import ftd2xx
 from enum import Enum
 from time import sleep
