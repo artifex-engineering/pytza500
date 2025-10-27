@@ -22,7 +22,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 
-keywords = ["Artifex", "Artifex Engineering", "Artifex-Engineering", "TZA500", "TZA", "Power monitor", "Optical power monitor"]
+keywords = ["Artifex", "Artifex Engineering", "Artifex-Engineering", "TZA500", "TZA", "Transimpedance Amplifier"]
 
 classifiers = [
   "Development Status :: 5 - Production/Stable",
