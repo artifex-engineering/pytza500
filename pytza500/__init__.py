@@ -105,9 +105,9 @@ class TZA500():
 
         self._tza_comm_max_retries: int = 800
 
-        self._tza_fw: str = None
-        self._tza_serial: str = None
-        self._tza_date_of_manufacturing: str = None
+        self._tza_fw: str = ""
+        self._tza_serial: str = ""
+        self._tza_date_of_manufacturing: str = ""
     
     @property
     def sensitivity(self) -> float:
