@@ -152,7 +152,7 @@ class TZA500():
         devices_found = []
 
         if sys.platform != "win32":
-            ftd2xx.setVIDPID(0x0403, 0x9a68) # for linux and macOS
+            ftd2xx.setVIDPID(0x0403, 0x9a68) # For linux and macOS
 
         numDevs = ftd2xx.createDeviceInfoList()
 
@@ -186,11 +186,11 @@ class TZA500():
             self._device = ftd2xx.openEx(self._port.encode())
             self._device.setBaudRate(115200)
             self._device.setDataCharacteristics(8, 0, 0) # 8 data bits, 1 stop bit, no parity
-            self._device.setFlowControl(0, 0, 0) # no flow control
+            self._device.setFlowControl(0, 0, 0) # No flow control
             self._device.setTimeouts(1000, 0)
             self._device.setChars(126, 1, 0, 0)
             self._device.resetDevice()
-            self._device.purge()
+            self._device.purge() # Purge receive/transmit buffers
         except ftd2xx.DeviceError:
             raise Exception("Cannot open Device with serial number {}.".format(self._port))
         
@@ -207,19 +207,19 @@ class TZA500():
     def _tza_send(self, msg: str):
         if self._device is None:
             raise Exception("Send error: port not open.")
-        self._device.purge()
+        self._device.purge() # Purge receive/transmit buffers
         self._device.write(msg.encode())
     
     def _tza_recv(self) -> str:
         if self._device is None:
-            raise Exception("recive error: port not open.")
+            raise Exception("Recive error: port not open.")
         msg = b""
         i = 0
         while i < self._tza_comm_max_retries:
-            if self._device.getQueueStatus() > 0: # check if bytes in buffer
-                msg = self._device.read(self._device.getQueueStatus()) # read entire buffer
-                while not msg.endswith(b'\r'): # append buffer until '\r' is found
-                    msg = msg + self._device.read(self._device.getQueueStatus())
+            if self._device.getQueueStatus() > 0: # Check if bytes in buffer
+                msg = self._device.read(self._device.getQueueStatus()) # Read entire buffer
+                while not msg.endswith(b'\r'): # Append buffer until '\r' is found
+                    msg += self._device.read(self._device.getQueueStatus())
                 
                 return msg.decode(errors="ignore").replace("\r", '').strip()
             sleep(0.01)
@@ -236,16 +236,16 @@ class TZA500():
         regex_serial = re.sub(r"(?:\n|.*$)*serial:.*?([0-9]+)(?:\n|.*$)*", "\\1", info, count=0, flags=re.MULTILINE | re.IGNORECASE)
         regex_date_of_manufacturing = re.sub(r"(?:\n|.*$)*date of manufacturing:.*?([0-9]{1,2}/[0-9]{2,4})(?:\n|.*$)*", "\\1", info, count=0, flags=re.MULTILINE | re.IGNORECASE)
 
-        self._tza_fw = regex_fw if regex_fw != info else "" # get TZA500 Firmware version
+        self._tza_fw = regex_fw if regex_fw != info else "" # Get TZA500 Firmware version
 
-        self._tza_serial = regex_serial if regex_serial != info else "" # get TZA500 serial number
-        self._tza_date_of_manufacturing = regex_date_of_manufacturing if regex_date_of_manufacturing != info else "" # get TZA500 date of Manufacturing
+        self._tza_serial = regex_serial if regex_serial != info else "" # Get TZA500 serial number
+        self._tza_date_of_manufacturing = regex_date_of_manufacturing if regex_date_of_manufacturing != info else "" # Get TZA500 date of Manufacturing
 
         if not self.tza_set_auto_zero_reset():
             self.disconnect()
             return False
     
-        # set default values
+        # Set default values
         if not self.tza_set_gain(self._gain):
             return False
 
@@ -370,7 +370,7 @@ class TZA500():
             if self._gain != "auto-gain":
                 self._gain = dict(zip(self._gain_steps.values(), self._gain_steps.keys()))[gain[1]]
             self._autogain_gain = int(self._gain_steps[dict(zip(self._gain_steps.values(), self._gain_steps.keys()))[gain[1]]][1:])
-            return dict(zip(self._gain_steps.values(), self._gain_steps.keys()))[gain[1]]
+            return ("Auto: " if self._gain == "auto-gain" else "") + dict(zip(self._gain_steps.values(), self._gain_steps.keys()))[gain[1]]
         return None
     
     def tza_set_gain(self, gain: str | GAIN) -> bool:
@@ -439,7 +439,7 @@ class TZA500():
             return tmp_amplitude
         
         if self._autogain_gain is None:
-            self.tza_get_gain() # get gain as int if not already set
+            self.tza_get_gain() # Get gain as int if not already set
 
         amplitude = float(tmp_amplitude[:-2].replace(",", "."))
 
@@ -473,14 +473,14 @@ class TZA500():
 
         if level > 90.0 and self._autogain_gain > 1:
             self._autogain_gain -= 1
-            self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # set new gain
-            return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 1) # return new measurement or re-adjust gain
+            self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # Set new gain
+            return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 1) # Return new measurement or re-adjust gain
         elif level < 8.0 and self._autogain_gain < self._max_gain:
-            if last_operation == 1: # prevent jumping between to gain leves
+            if last_operation == 1: # Prevent jumping between two gain leves
                 recursion = len(self._gain_steps)
             self._autogain_gain += 1
-            self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # set new gain
-            return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 2) # return new measurement or re-adjust gain
+            self.tza_set_gain(dict(zip(self._gain_steps.values(), self._gain_steps.keys()))["V{}".format(self._autogain_gain)]) # Set new gain
+            return self._tza_autogain(self.tza_get_single_raw_measure(), recursion + 1, 2) # Return new measurement or re-adjust gain
         else:
             return tmp_amplitude
 
@@ -492,7 +492,7 @@ class TZA500():
             measurement(str): Raw measurement value in the format: I1,0nA or I1,0uA
         """
         self._tza_send("$E")
-        return self._tza_recv()[1:].strip() # remove 'I' prefix from response
+        return self._tza_recv()[1:].strip() # Remove 'I' prefix from response
 
     def tza_get_measurement(self) -> list[float, str]:
         """
@@ -502,15 +502,15 @@ class TZA500():
             list[value(float): Measured value, unit(str): Selected unit]
         """
         amplitude = self.tza_get_single_raw_measure()
-        if self._gain == "auto-gain": # adjust gain if auto-gain is chosen
+        if self._gain == "auto-gain": # Adjust gain if auto-gain is chosen
             amplitude = self._tza_autogain(amplitude)
-        unit = amplitude[amplitude.find("A")-1:] # get unit from last two bytes of the response
+        unit = amplitude[amplitude.find("A")-1:] # Get unit from last two bytes of the response
 
         amplitude = amplitude[:-2].replace(",", ".")
         amplitude = float(amplitude)
 
         if unit == "uA":
-            amplitude *= 1000 # convert µA to nA
+            amplitude *= 1000 # Convert µA to nA
 
         sensitivity = 1.0
         if self._unit not in ["nA", "µA", "mA", "A"]:
@@ -521,13 +521,13 @@ class TZA500():
         if self._unit.startswith("n"):
             amplitude = round(amplitude, 3)
         elif self._unit.startswith("µ"):
-            amplitude /= 1000 # nano to micro
+            amplitude /= 1000 # Nano to micro
             amplitude = round(amplitude, 6)
         elif self._unit.startswith("m"):
-            amplitude /= 1000000 # nano to milli
+            amplitude /= 1000000 # Nano to milli
             amplitude = round(amplitude, 9)
         else:
-            amplitude /= 1000000000 # for A and W
+            amplitude /= 1000000000 # For A and W
             amplitude = round(amplitude, 12)
 
         return [amplitude, self._unit]
