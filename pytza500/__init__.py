@@ -337,7 +337,7 @@ class TZA500():
         Sets the specified bandwith.
 
         :param:
-            bandwith(str | BANDWITH): Gain to set
+            bandwith(str | BANDWITH): Bandwith to set
         
         :return:
             result(bool): Returns whether the bandwith was set successfully
