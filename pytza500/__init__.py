@@ -219,7 +219,9 @@ class TZA500():
             if self._device.getQueueStatus() > 0: # Check if bytes in buffer
                 msg = self._device.read(self._device.getQueueStatus()) # Read entire buffer
                 while not msg.endswith(b'\r'): # Append buffer until '\r' is found
-                    msg += self._device.read(self._device.getQueueStatus())
+                    queue_status = self._device.getQueueStatus()
+                    if queue_status > 0:
+                        msg += self._device.read(queue_status)
                 
                 return msg.decode(errors="ignore").replace("\r", '').strip()
             sleep(0.01)
