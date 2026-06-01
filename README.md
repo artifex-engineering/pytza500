@@ -55,7 +55,8 @@ tza.sensitivity = 1.0 # Set sensitivity (only for watt units)
 tza.set_unit(UNITS.MICROAMPERE)
 
 # Print single measurement
-print(format(tza.tza_get_measurement(), '.8f'))
+measurement = tza.tza_get_measurement()
+print(f"{measurement[0]:.8f} {measurement[1]}")
 
 tza.disconnect()
 ```
